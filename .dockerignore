@@ -1,0 +1,9 @@
+node_modules
+dist
+backend/node_modules
+backend/campus.db
+backend/node_modules
+*.log
+.git
+.oxlintrc.json
+.gemini
