@@ -62,7 +62,7 @@ const syncWithRetries = async (retries = 5, delay = 3000) => {
   }
 };
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   syncWithRetries()
     .then(() => {
       app.listen(PORT, () => {
