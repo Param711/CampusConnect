@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Megaphone, Calendar, Bookmark, AlertCircle, WifiOff } from 'lucide-react';
+import { 
+  LayoutDashboard, Megaphone, Calendar, Bookmark, 
+  WifiOff, LogIn, LogOut, User, PlusCircle 
+} from 'lucide-react';
 import { useDashboard } from '../context/DashboardContext';
+import AuthModal from './AuthModal';
+import AdminCreator from './AdminCreator';
 
 const Sidebar = () => {
   const { 
@@ -10,10 +15,16 @@ const Sidebar = () => {
     simulateError, 
     setSimulateError,
     savedNotices,
-    savedEvents
+    savedEvents,
+    currentUser,
+    logoutUser
   } = useDashboard();
 
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+
   const totalSaved = savedNotices.length + savedEvents.length;
+  const isAdmin = currentUser?.role === 'admin';
 
   return (
     <>
@@ -56,55 +67,89 @@ const Sidebar = () => {
               <Bookmark size={20} />
               <span>Saved Items</span>
               {totalSaved > 0 && (
-                <span style={{
-                  marginLeft: 'auto',
-                  background: '#6366f1',
-                  color: 'white',
-                  borderRadius: '50%',
-                  fontSize: '0.7rem',
-                  width: '18px',
-                  height: '18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold'
-                }}>{totalSaved}</span>
+                <span className="badge-counter">{totalSaved}</span>
               )}
             </NavLink>
+
+            {isAdmin && (
+              <button 
+                onClick={() => setIsAdminOpen(true)}
+                className="sidebar-link"
+                style={{ 
+                  width: '100%', 
+                  background: 'rgba(99, 102, 241, 0.12)', 
+                  color: 'var(--color-academic-text)',
+                  border: '1px solid rgba(99, 102, 241, 0.25)',
+                  marginTop: '1rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <PlusCircle size={20} style={{ color: 'var(--color-academic-text)' }} />
+                <span style={{ fontWeight: '600' }}>Create Content</span>
+              </button>
+            )}
           </nav>
         </div>
 
-        {/* Debug Simulation Controls in Sidebar Footer */}
-        <div style={{ 
-          borderTop: '1px solid rgba(255, 255, 255, 0.05)', 
-          paddingTop: '1.5rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem'
-        }}>
-          <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Simulate Network</h4>
-          
-          <label className="sim-control-label">
-            <input 
-              type="checkbox" 
-              checked={simulateDelay} 
-              onChange={(e) => setSimulateDelay(e.target.checked)} 
-            />
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              Delay API (1.2s)
-            </span>
-          </label>
+        <div>
+          {/* User Session profile area */}
+          <div className="user-profile-section">
+            {currentUser ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div className="user-avatar">
+                    <User size={18} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      {currentUser.name}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      {currentUser.role}
+                    </span>
+                  </div>
+                </div>
+                <button className="sidebar-link btn-logout" onClick={logoutUser}>
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            ) : (
+              <button className="sidebar-link btn-login" onClick={() => setIsAuthOpen(true)}>
+                <LogIn size={18} />
+                <span>Sign In / Register</span>
+              </button>
+            )}
+          </div>
 
-          <label className="sim-control-label">
-            <input 
-              type="checkbox" 
-              checked={simulateError} 
-              onChange={(e) => setSimulateError(e.target.checked)} 
-            />
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: simulateError ? 'var(--color-urgent-text)' : 'inherit' }}>
-              <WifiOff size={14} /> Network Error
-            </span>
-          </label>
+          {/* Debug Simulation Controls in Sidebar Footer */}
+          <div className="sidebar-footer-controls">
+            <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              Simulate Network
+            </h4>
+            
+            <label className="sim-control-label">
+              <input 
+                type="checkbox" 
+                checked={simulateDelay} 
+                onChange={(e) => setSimulateDelay(e.target.checked)} 
+              />
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                Delay API (1.2s)
+              </span>
+            </label>
+
+            <label className="sim-control-label" style={{ marginTop: '0.45rem' }}>
+              <input 
+                type="checkbox" 
+                checked={simulateError} 
+                onChange={(e) => setSimulateError(e.target.checked)} 
+              />
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: simulateError ? 'var(--color-urgent-text)' : 'inherit' }}>
+                <WifiOff size={14} /> Network Error
+              </span>
+            </label>
+          </div>
         </div>
       </aside>
 
@@ -119,36 +164,36 @@ const Sidebar = () => {
           <Megaphone size={20} />
           <span>Notices</span>
         </NavLink>
+
+        {isAdmin && (
+          <button 
+            onClick={() => setIsAdminOpen(true)}
+            className="mobile-nav-link"
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            <PlusCircle size={20} style={{ color: 'var(--color-academic-text)' }} />
+            <span>Create</span>
+          </button>
+        )}
         
         <NavLink to="/events" className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
           <Calendar size={20} />
           <span>Events</span>
         </NavLink>
         
-        <NavLink to="/saved" className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}>
-          <div style={{ position: 'relative' }}>
-            <Bookmark size={20} />
-            {totalSaved > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-5px',
-                right: '-10px',
-                background: '#6366f1',
-                color: 'white',
-                borderRadius: '50%',
-                fontSize: '0.6rem',
-                width: '14px',
-                height: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold'
-              }}>{totalSaved}</span>
-            )}
-          </div>
-          <span>Saved</span>
-        </NavLink>
+        <button 
+          onClick={currentUser ? logoutUser : () => setIsAuthOpen(true)}
+          className="mobile-nav-link"
+          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          {currentUser ? <LogOut size={20} /> : <LogIn size={20} />}
+          <span>{currentUser ? 'Logout' : 'Sign In'}</span>
+        </button>
       </nav>
+
+      {/* Modal Dialog Portals */}
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <AdminCreator isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
     </>
   );
 };

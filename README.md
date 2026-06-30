@@ -94,6 +94,48 @@ npm test
 
 ---
 
+## 💡 Quick API Reference (Creating Notices & Events)
+
+To publish notices or events to your live dashboard, you need to authenticate as an `admin`. Follow this flow using any API testing tool (like Postman or curl):
+
+### 1. Register an Admin User
+Send a `POST` request to `https://<your-app-domain>.vercel.app/api/users` with the payload:
+```json
+{
+  "name": "Dean Admin",
+  "email": "dean@campus.edu",
+  "role": "admin"
+}
+```
+*Response returns your user `id` (UUID) and a security `token`.*
+
+### 2. Create a Notice (Academic / Placement / Sports, etc.)
+Send a `POST` to `/api/notices` with the header `Authorization: Bearer <your-admin-token>` and payload:
+```json
+{
+  "title": "Semester Exams Postponed",
+  "content": "The midterm examinations have been rescheduled to next Monday due to bad weather.",
+  "category": "Academic",
+  "postedBy": "<your-admin-uuid>"
+}
+```
+
+### 3. Create an Event (Workshop / Cultural / Sports, etc.)
+Send a `POST` to `/api/events` with the header `Authorization: Bearer <your-admin-token>` and payload:
+```json
+{
+  "title": "Hackathon 2026",
+  "description": "24-hour campus coding challenge with cash prizes.",
+  "category": "Workshop",
+  "venue": "Campus Seminar Hall A",
+  "startTime": "2026-07-15T09:00:00Z",
+  "endTime": "2026-07-16T09:00:00Z",
+  "organizer": "Developers' Society"
+}
+```
+
+---
+
 ## 🧠 Challenges Faced & Solutions
 
 ### 1. Database Startup Race Conditions in Docker

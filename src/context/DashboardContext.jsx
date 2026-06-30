@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { mockNotices, mockEvents } from '../data/mockData';
 
 const DashboardContext = createContext();
 
@@ -37,6 +36,15 @@ export const DashboardProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : true;
   });
 
+  // Auth state
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('currentUser');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [authToken, setAuthToken] = useState(() => {
+    return localStorage.getItem('authToken') || null;
+  });
+
   // Apply theme class to document body
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
@@ -47,7 +55,7 @@ export const DashboardProvider = ({ children }) => {
     }
   }, [darkMode]);
 
-  // Sync bookmarks to localStorage
+  // Sync bookmarks & RSVPs to localStorage
   useEffect(() => {
     localStorage.setItem('savedNotices', JSON.stringify(savedNotices));
   }, [savedNotices]);
@@ -59,6 +67,30 @@ export const DashboardProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('rsvpedEvents', JSON.stringify(rsvpedEvents));
   }, [rsvpedEvents]);
+
+  // Sync auth state to localStorage
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('currentUser');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (authToken) {
+      localStorage.setItem('authToken', authToken);
+    } else {
+      localStorage.removeItem('authToken');
+    }
+  }, [authToken]);
+
+  // Determine the API base URL dynamically
+  const getApiBase = () => {
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:3000/api'
+      : `${window.location.origin}/api`;
+  };
 
   // Fetch / Load data function
   const fetchData = async () => {
@@ -75,10 +107,7 @@ export const DashboardProvider = ({ children }) => {
         throw new Error('Simulated network error: Failed to connect to campus hub server.');
       }
 
-      // Determine the API base URL dynamically
-      const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3000/api'
-        : `${window.location.origin}/api`;
+      const apiBase = getApiBase();
 
       // Fetch real data from live REST API endpoints
       const [noticesRes, eventsRes] = await Promise.all([
@@ -106,7 +135,79 @@ export const DashboardProvider = ({ children }) => {
 
   useEffect(() => {
     fetchData();
-  }, [simulateError]); // refetch when simulateError toggles to show immediate transition
+  }, [simulateError]);
+
+  // Auth methods
+  const registerUser = async (name, email, role) => {
+    const res = await fetch(`${getApiBase()}/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, role })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to register.');
+    }
+    setCurrentUser(data.user);
+    setAuthToken(data.token);
+    return data.user;
+  };
+
+  const loginUser = async (email) => {
+    const res = await fetch(`${getApiBase()}/users/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to log in.');
+    }
+    setCurrentUser(data.user);
+    setAuthToken(data.token);
+    return data.user;
+  };
+
+  const logoutUser = () => {
+    setCurrentUser(null);
+    setAuthToken(null);
+  };
+
+  // Create Notice
+  const createNotice = async (noticeData) => {
+    const res = await fetch(`${getApiBase()}/notices`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify(noticeData)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to publish notice.');
+    }
+    await fetchData();
+    return data;
+  };
+
+  // Create Event
+  const createEvent = async (eventData) => {
+    const res = await fetch(`${getApiBase()}/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify(eventData)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to schedule event.');
+    }
+    await fetchData();
+    return data;
+  };
 
   // Bookmark actions
   const toggleBookmarkNotice = (id) => {
@@ -128,7 +229,6 @@ export const DashboardProvider = ({ children }) => {
       hasRsvped ? prev.filter(item => item !== id) : [...prev, id]
     );
     
-    // Adjust RSVP count in the state dynamically
     setEvents(prevEvents => 
       prevEvents.map(event => {
         if (event.id === id) {
@@ -162,6 +262,13 @@ export const DashboardProvider = ({ children }) => {
       setSimulateError,
       darkMode,
       setDarkMode,
+      currentUser,
+      authToken,
+      registerUser,
+      loginUser,
+      logoutUser,
+      createNotice,
+      createEvent,
       fetchData,
       toggleBookmarkNotice,
       toggleBookmarkEvent,
