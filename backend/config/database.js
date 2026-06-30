@@ -16,11 +16,16 @@ if (process.env.NODE_ENV === 'test') {
   console.log('Database Config: Connecting to PostgreSQL...');
   
   if (process.env.DATABASE_URL) {
+    const isCloudDB = process.env.DATABASE_URL.includes('supabase') || 
+                       process.env.DATABASE_URL.includes('neon.tech') || 
+                       process.env.DATABASE_URL.includes('pooler');
+    const useSSL = process.env.DB_SSL === 'true' || isCloudDB;
+
     sequelize = new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
       logging: false,
       dialectOptions: {
-        ssl: process.env.DB_SSL === 'true' ? {
+        ssl: useSSL ? {
           require: true,
           rejectUnauthorized: false
         } : false
